@@ -33,7 +33,9 @@ Follow the instructions in `GOOGLE_AUTH_SETUP.md`:
    - `https://your-app.vercel.app/auth/callback` (production)
    - `http://localhost:3000/auth/callback` (local development)
 
-### 3. **Environment Variables** (Required)
+### 3. **Environment Variables** (Required - MUST BE SET BEFORE FIRST BUILD)
+
+⚠️ **IMPORTANT**: You MUST add environment variables in Vercel BEFORE the first build/deployment!
 
 Set these in Vercel Dashboard → Project Settings → Environment Variables:
 
@@ -46,6 +48,16 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 - Go to Supabase Dashboard → Project Settings → API
 - Copy the "Project URL" for `NEXT_PUBLIC_SUPABASE_URL`
 - Copy the "anon public" key for `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+**How to add in Vercel:**
+1. Go to your Vercel project
+2. Click "Settings" → "Environment Variables"
+3. Add each variable:
+   - Key: `NEXT_PUBLIC_SUPABASE_URL`
+   - Value: `your_supabase_url`
+   - Make sure to check: Production, Preview, and Development
+4. Repeat for `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+5. Click "Save"
 
 ### 4. **Build Configuration** ✅
 
@@ -70,16 +82,22 @@ The project is already configured:
    - Import your GitHub repository
    - Vercel will auto-detect Next.js
 
-3. **Add Environment Variables**
-   - In Vercel project settings, add the two environment variables above
-   - Make sure they're set for Production, Preview, and Development
+3. **⚠️ CRITICAL: Add Environment Variables BEFORE First Build**
+   - **DO NOT click "Deploy" yet!**
+   - First, go to "Settings" → "Environment Variables"
+   - Add `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - Make sure to enable for Production, Preview, and Development
+   - Click "Save"
+   - **Only after adding env vars, go back and click "Deploy"**
 
 4. **Update Supabase Redirect URLs**
+   - After first deployment, copy your Vercel URL
    - In Supabase Dashboard → Authentication → URL Configuration
    - Add your Vercel deployment URL: `https://your-app.vercel.app/auth/callback`
 
 5. **Deploy**
-   - Vercel will automatically build and deploy
+   - Click "Deploy" in Vercel
+   - Wait for build to complete
    - If build succeeds, your app is live!
 
 ### 6. **Post-Deployment Verification**
