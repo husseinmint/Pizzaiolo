@@ -276,7 +276,7 @@ export default function RecipesPage() {
                 className="border-border hover:border-primary/50 transition-colors overflow-hidden flex flex-col"
               >
                 {recipe.image_url && (
-                  <div className="h-40 bg-muted overflow-hidden relative">
+                  <div className="h-40 bg-muted overflow-hidden relative w-full -m-6 mb-0">
                     <img
                       src={recipe.image_url || "/placeholder.svg"}
                       alt={recipe.name}
@@ -284,7 +284,7 @@ export default function RecipesPage() {
                     />
                     <button
                       onClick={() => handleToggleFavorite(recipe.id)}
-                      className="absolute top-2 right-2 p-2 bg-black/50 hover:bg-black/70 rounded-full transition-colors"
+                      className="absolute top-2 right-2 p-2 bg-black/50 hover:bg-black/70 rounded-full transition-colors z-10"
                     >
                       <Heart
                         className="w-4 h-4 text-white"
