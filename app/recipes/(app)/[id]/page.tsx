@@ -7,6 +7,8 @@ import { isFavorite, toggleFavorite } from "@/lib/db/favorites"
 import type { Recipe, Ingredient } from "@/lib/types/recipe"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
 import { RecipeHeader } from "@/components/recipe-header"
 import { DeleteDialog } from "@/components/delete-dialog"
 import { ArrowLeft, Edit2, Trash2, Clock, Users, Flame, Heart, ShoppingCart, ChefHat, Copy, Printer } from "lucide-react"
@@ -29,7 +31,6 @@ export default function RecipeDetailPage({ params }: { params: Promise<{ id: str
   const [deleting, setDeleting] = useState(false)
   const [showShoppingList, setShowShoppingList] = useState(false)
   const [showCookingMode, setShowCookingMode] = useState(false)
-  const [servingsMultiplier, setServingsMultiplier] = useState(1)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -65,7 +66,7 @@ export default function RecipeDetailPage({ params }: { params: Promise<{ id: str
         title: "Success",
         description: "Recipe deleted successfully",
       })
-      window.location.href = "/recipes"
+      router.push("/recipes")
     } catch (error) {
       console.error("[v0] Delete error:", error)
       toast({
@@ -118,11 +119,6 @@ export default function RecipeDetailPage({ params }: { params: Promise<{ id: str
     window.print()
   }
 
-  const calculateScaledAmount = (amount: number | null): number | null => {
-    if (amount === null) return null
-    return Math.round((amount * servingsMultiplier) * 100) / 100
-  }
-
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -150,48 +146,30 @@ export default function RecipeDetailPage({ params }: { params: Promise<{ id: str
     )
   }
 
+  const instructionsArray = recipe.instructions
+    ? recipe.instructions.split("\n").filter((line) => line.trim())
+    : []
+
   return (
     <div className="min-h-screen bg-background">
       <RecipeHeader showNewButton={false} />
 
-      <main className="max-w-4xl mx-auto px-4 py-8 print-main">
-        {/* Print Content for Recipes */}
-        {recipe && (
-          <div className="recipe-print-content hidden print:block bg-white p-8" dir={direction}>
-          <h1>{recipe.name}</h1>
-          {recipe.category && <p style={{ marginBottom: '1rem' }}>{recipe.category}</p>}
-          {recipe.description && <p style={{ marginBottom: '1.5rem' }}>{recipe.description}</p>}
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-            {recipe.prep_time_minutes && (
-              <div>
-                <div style={{ fontWeight: 'bold', fontSize: '18pt' }}>{recipe.prep_time_minutes}m</div>
-                <div style={{ fontSize: '10pt' }}>Prep Time</div>
-              </div>
-            )}
-            {recipe.cook_time_minutes && (
-              <div>
-                <div style={{ fontWeight: 'bold', fontSize: '18pt' }}>{recipe.cook_time_minutes}m</div>
-                <div style={{ fontSize: '10pt' }}>Cook Time</div>
-              </div>
-            )}
-            {recipe.servings && (
-              <div>
-                <div style={{ fontWeight: 'bold', fontSize: '18pt' }}>{recipe.servings}</div>
-                <div style={{ fontSize: '10pt' }}>Servings</div>
-              </div>
-            )}
-          </div>
-
+      <main className="max-w-5xl mx-auto px-4 py-8">
+        {/* Print Version */}
+        <div className="hidden print:block bg-white p-8" dir={direction}>
+          <h1 className="text-4xl font-bold mb-2">{recipe.name}</h1>
+          {recipe.category && <p className="text-xl text-muted-foreground mb-4">{recipe.category}</p>}
+          {recipe.description && <p className="mb-6">{recipe.description}</p>}
+          
           {ingredients.length > 0 && (
-            <div style={{ marginBottom: '1.5rem' }}>
-              <h2>Ingredients</h2>
-              <ul className="ingredients-list">
+            <div className="mb-6">
+              <h2 className="text-2xl font-semibold mb-3">Ingredients</h2>
+              <ul className="space-y-2">
                 {ingredients.map((ingredient) => (
                   <li key={ingredient.id}>
                     <strong>{ingredient.name}</strong>
                     {ingredient.amount && (
-                      <span> - {calculateScaledAmount(ingredient.amount)} {ingredient.unit || ""}</span>
+                      <span> - {ingredient.amount} {ingredient.unit || ""}</span>
                     )}
                   </li>
                 ))}
@@ -199,186 +177,221 @@ export default function RecipeDetailPage({ params }: { params: Promise<{ id: str
             </div>
           )}
 
-          {recipe.instructions && (
+          {instructionsArray.length > 0 && (
             <div>
-              <h2>Instructions</h2>
-              <div className="instructions">
-                {recipe.instructions.split("\n").map(
-                  (line, index) =>
-                    line.trim() && (
-                      <p key={index}>
-                        <strong>{index + 1}.</strong> {line.trim()}
-                      </p>
-                    ),
-                )}
-              </div>
+              <h2 className="text-2xl font-semibold mb-3">Instructions</h2>
+              <ol className="space-y-2">
+                {instructionsArray.map((instruction, index) => (
+                  <li key={index}>
+                    <strong>{index + 1}.</strong> {instruction.trim()}
+                  </li>
+                ))}
+              </ol>
             </div>
           )}
-          </div>
-        )}
+        </div>
 
-        {/* Screen Content */}
-        <div className="no-print">
-          <Link href="/recipes" className="flex items-center gap-1 text-muted-foreground hover:text-foreground mb-6">
-            <ArrowLeft className="w-4 h-4" />
+        {/* Screen Version */}
+        <div className="print:hidden">
+          {/* Back Button */}
+          <Button
+            variant="ghost"
+            className="mb-6 -ml-2 text-muted-foreground hover:text-foreground"
+            onClick={() => router.back()}
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Recipes
-          </Link>
+          </Button>
 
-          <div className="space-y-6">
-          {recipe.image_url && (
-            <div className="h-96 bg-muted rounded-lg overflow-hidden relative">
-              <img
-                src={recipe.image_url || "/placeholder.svg"}
-                alt={recipe.name}
-                className="w-full h-full object-cover"
-              />
-              <button
-                onClick={handleToggleFavorite}
-                className="absolute top-4 right-4 p-3 bg-black/50 hover:bg-black/70 rounded-full transition-colors"
-              >
-                <Heart className="w-6 h-6 text-white" fill={isFav ? "currentColor" : "none"} />
-              </button>
-            </div>
-          )}
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <h1 className="text-4xl font-bold">{recipe.name}</h1>
-              <span className="px-3 py-1 rounded-full text-sm font-medium bg-muted text-foreground">
-                {recipe.difficulty.charAt(0).toUpperCase() + recipe.difficulty.slice(1)}
-              </span>
-            </div>
-            {recipe.category && <p className="text-lg text-muted-foreground">{recipe.category}</p>}
-            {recipe.description && <p className="text-lg text-foreground">{recipe.description}</p>}
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
-            {recipe.prep_time_minutes && (
-              <Card className="border-border">
-                <CardContent className="pt-6 space-y-2 text-center">
-                  <Clock className="w-5 h-5 mx-auto opacity-60" />
-                  <div className="text-2xl font-bold">{recipe.prep_time_minutes}m</div>
-                  <div className="text-sm text-muted-foreground">Prep Time</div>
-                </CardContent>
-              </Card>
-            )}
-            {recipe.cook_time_minutes && (
-              <Card className="border-border">
-                <CardContent className="pt-6 space-y-2 text-center">
-                  <Flame className="w-5 h-5 mx-auto opacity-60" />
-                  <div className="text-2xl font-bold">{recipe.cook_time_minutes}m</div>
-                  <div className="text-sm text-muted-foreground">Cook Time</div>
-                </CardContent>
-              </Card>
-            )}
-            {recipe.servings && (
-              <Card className="border-border">
-                <CardContent className="pt-6 space-y-2 text-center">
-                  <Users className="w-5 h-5 mx-auto opacity-60" />
-                  <div className="text-2xl font-bold">{recipe.servings}</div>
-                  <div className="text-sm text-muted-foreground">Servings</div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-
-          {ingredients.length > 0 && (
-            <Card className="border-border">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Ingredients</CardTitle>
-                <div className="flex gap-2 items-center no-print">
-                  {recipe.servings && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground">Servings:</span>
-                      <input
-                        type="number"
-                        min="1"
-                        value={servingsMultiplier * (recipe.servings || 1)}
-                        onChange={(e) => {
-                          const newServings = Number.parseInt(e.target.value) || 1
-                          setServingsMultiplier(newServings / (recipe.servings || 1))
-                        }}
-                        className="w-16 px-2 py-1 border border-border rounded text-sm"
-                      />
-                    </div>
-                  )}
-                  <Button variant="outline" size="sm" onClick={() => setShowShoppingList(true)}>
-                    <ShoppingCart className="w-4 h-4 mr-2" />
-                    List
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <ul className="ingredients-list space-y-2">
-                  {ingredients.map((ingredient) => (
-                    <li key={ingredient.id} className="flex items-center gap-3">
-                      <span className="w-2 h-2 bg-primary rounded-full print-hidden"></span>
-                      <span className="font-medium">{ingredient.name}</span>
-                      {ingredient.amount && (
-                        <span className="text-muted-foreground">
-                          {calculateScaledAmount(ingredient.amount)} {ingredient.unit || ""}
-                        </span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          )}
-
-          {recipe.instructions && (
-            <Card className="border-border">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Instructions</CardTitle>
-                <Button variant="outline" size="sm" onClick={() => setShowCookingMode(true)} className="no-print">
-                  <ChefHat className="w-4 h-4 mr-2" />
-                  Cooking Mode
+          <div className="space-y-8">
+            {/* Hero Image */}
+            {recipe.image_url && (
+              <div className="relative h-[400px] rounded-2xl overflow-hidden shadow-lg">
+                <img
+                  src={recipe.image_url || "/placeholder.svg"}
+                  alt={recipe.name}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className={`absolute top-6 right-6 h-12 w-12 rounded-full backdrop-blur-md transition-all ${
+                    isFav 
+                      ? 'bg-red-500/90 hover:bg-red-600/90 text-white' 
+                      : 'bg-white/20 hover:bg-white/30 text-white'
+                  }`}
+                  onClick={handleToggleFavorite}
+                >
+                  <Heart className={`w-6 h-6 ${isFav ? 'fill-current' : ''}`} />
                 </Button>
-              </CardHeader>
-              <CardContent>
-                <div className="instructions space-y-4">
-                  {recipe.instructions.split("\n").map(
-                    (line, index) =>
-                      line.trim() && (
-                        <p key={index} className="text-foreground">
-                          <span className="font-semibold">{index + 1}.</span> {line.trim()}
-                        </p>
-                      ),
+                
+                {/* Title Overlay */}
+                <div className="absolute bottom-0 left-0 right-0 p-8">
+                  <div className="flex items-end justify-between gap-4">
+                    <div>
+                      {recipe.category && (
+                        <Badge className="mb-3 bg-white/20 backdrop-blur-md text-white border-white/30 hover:bg-white/30">
+                          {recipe.category}
+                        </Badge>
+                      )}
+                      <h1 className="text-5xl font-bold text-white mb-2">{recipe.name}</h1>
+                    </div>
+                    <Badge 
+                      variant="secondary" 
+                      className="text-sm px-4 py-2 bg-white/90 backdrop-blur-md capitalize"
+                    >
+                      {recipe.difficulty}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Description */}
+            <div className="space-y-4">
+              {recipe.description && (
+                <p className="text-lg text-muted-foreground leading-relaxed">
+                  {recipe.description}
+                </p>
+              )}
+
+              {/* Quick Info */}
+              {(recipe.prep_time_minutes || recipe.cook_time_minutes || recipe.servings) && (
+                <div className="grid grid-cols-3 gap-4">
+                  {recipe.prep_time_minutes && (
+                    <Card className="border-border/50">
+                      <CardContent className="pt-6 flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-primary/10">
+                          <Clock className="w-5 h-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Prep Time</p>
+                          <p className="font-semibold">{recipe.prep_time_minutes}m</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                  {recipe.cook_time_minutes && (
+                    <Card className="border-border/50">
+                      <CardContent className="pt-6 flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-orange-500/10">
+                          <Flame className="w-5 h-5 text-orange-500" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Cook Time</p>
+                          <p className="font-semibold">{recipe.cook_time_minutes}m</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                  {recipe.servings && (
+                    <Card className="border-border/50">
+                      <CardContent className="pt-6 flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-green-500/10">
+                          <Users className="w-5 h-5 text-green-500" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Servings</p>
+                          <p className="font-semibold">{recipe.servings}</p>
+                        </div>
+                      </CardContent>
+                    </Card>
                   )}
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              )}
+            </div>
 
-          <div className="flex gap-2 pt-6 border-t border-border flex-wrap no-print">
-            <Link href="/recipes" className="flex-1 min-w-[120px]">
-              <Button variant="outline" className="w-full border-border bg-transparent">
+            {/* Ingredients Card */}
+            {ingredients.length > 0 && (
+              <Card className="border-border/50 shadow-sm">
+                <CardHeader className="flex flex-row items-center justify-between pb-4">
+                  <CardTitle className="text-2xl">Ingredients</CardTitle>
+                  <Button variant="outline" size="sm" className="gap-2" onClick={() => setShowShoppingList(true)}>
+                    <ShoppingCart className="w-4 h-4" />
+                    Add to List
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-3">
+                    {ingredients.map((ingredient) => (
+                      <li key={ingredient.id} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
+                        <div className="flex items-center gap-3">
+                          <span className="w-2 h-2 bg-primary rounded-full" />
+                          <span className="font-medium">{ingredient.name}</span>
+                        </div>
+                        {ingredient.amount && (
+                          <span className="text-muted-foreground font-mono text-sm">
+                            {ingredient.amount} {ingredient.unit || ""}
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Instructions Card */}
+            {instructionsArray.length > 0 && (
+              <Card className="border-border/50 shadow-sm">
+                <CardHeader className="flex flex-row items-center justify-between pb-4">
+                  <CardTitle className="text-2xl">Instructions</CardTitle>
+                  <Button variant="outline" size="sm" className="gap-2" onClick={() => setShowCookingMode(true)}>
+                    <ChefHat className="w-4 h-4" />
+                    Cooking Mode
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  <ol className="space-y-6">
+                    {instructionsArray.map((instruction, index) => (
+                      <li key={index} className="flex gap-4">
+                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold">
+                          {index + 1}
+                        </div>
+                        <p className="text-foreground leading-relaxed pt-1">{instruction.trim()}</p>
+                      </li>
+                    ))}
+                  </ol>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Action Buttons */}
+            <Separator />
+            <div className="flex gap-3 flex-wrap">
+              <Button
+                variant="outline"
+                className="flex-1 min-w-[140px]"
+                onClick={() => router.back()}
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Recipes
               </Button>
-            </Link>
-            <Button variant="outline" onClick={handlePrint} className="gap-2 border-border bg-transparent">
-              <Printer className="w-4 h-4" />
-              Print
-            </Button>
-            <Button variant="outline" onClick={handleDuplicate} className="gap-2 border-border bg-transparent">
-              <Copy className="w-4 h-4" />
-              Duplicate
-            </Button>
-            <Link href={`/recipes/${recipe.id}/edit`}>
-              <Button variant="outline" className="gap-2 border-border bg-transparent">
-                <Edit2 className="w-4 h-4" />
-                Edit
+              <Button variant="outline" onClick={handlePrint}>
+                <Printer className="w-4 h-4 mr-2" />
+                Print
               </Button>
-            </Link>
-            <Button
-              variant="outline"
-              onClick={() => setDeleteOpen(true)}
-              className="border-destructive text-destructive hover:bg-destructive/10 bg-transparent"
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
+              <Button variant="outline" onClick={handleDuplicate}>
+                <Copy className="w-4 h-4 mr-2" />
+                Duplicate
+              </Button>
+              <Button variant="outline" asChild>
+                <Link href={`/recipes/${recipe.id}/edit`}>
+                  <Edit2 className="w-4 h-4 mr-2" />
+                  Edit
+                </Link>
+              </Button>
+              <Button 
+                variant="outline" 
+                className="border-destructive text-destructive hover:bg-destructive/10"
+                onClick={() => setDeleteOpen(true)}
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete
+              </Button>
+            </div>
           </div>
-        </div>
         </div>
       </main>
 
