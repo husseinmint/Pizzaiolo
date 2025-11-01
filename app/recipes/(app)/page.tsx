@@ -8,10 +8,11 @@ import { getFavoriteRecipes, toggleFavorite } from "@/lib/db/favorites"
 import type { Recipe } from "@/lib/types/recipe"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { RecipeHeader } from "@/components/recipe-header"
 import { RecipeLoading } from "@/components/recipe-loading"
 import { DeleteDialog } from "@/components/delete-dialog"
-import { Edit2, Trash2, Clock, Users, Heart, Filter, Star } from "lucide-react"
+import { Edit2, Trash2, Clock, ChefHat, Heart, Filter, Star } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 export default function RecipesPage() {
@@ -27,6 +28,7 @@ export default function RecipesPage() {
   const [category, setCategory] = useState<string>("")
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false)
   const [categories, setCategories] = useState<string[]>([])
+  const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set())
   const { toast } = useToast()
   const supabase = createClient()
 
@@ -270,87 +272,132 @@ export default function RecipesPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {recipes.map((recipe) => (
-              <Card
-                key={recipe.id}
-                className="border-border hover:border-primary/50 transition-colors overflow-hidden flex flex-col"
-              >
-                {recipe.image_url && (
-                  <div className="h-40 bg-muted overflow-hidden relative w-full -m-6 mb-0">
-                    <img
-                      src={recipe.image_url || "/placeholder.svg"}
-                      alt={recipe.name}
-                      className="w-full h-full object-cover"
-                    />
-                    <button
-                      onClick={() => handleToggleFavorite(recipe.id)}
-                      className="absolute top-2 right-2 p-2 bg-black/50 hover:bg-black/70 rounded-full transition-colors z-10"
-                    >
-                      <Heart
-                        className="w-4 h-4 text-white"
-                        fill={favorites.includes(recipe.id) ? "currentColor" : "none"}
+            {recipes.map((recipe) => {
+              const imageLoaded = loadedImages.has(recipe.id)
+              
+              return (
+                <div
+                  key={recipe.id}
+                  className="group relative bg-card text-card-foreground rounded-2xl border border-border hover:border-foreground/20 transition-all duration-300 overflow-hidden flex flex-col shadow-sm hover:shadow-md"
+                >
+                  {/* Image Section */}
+                  {recipe.image_url && (
+                    <div className="relative h-56 bg-muted overflow-hidden">
+                      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background/80 z-10" />
+                      <img
+                        alt={recipe.name}
+                        className={`w-full h-full object-cover transition-all duration-500 ${
+                          imageLoaded ? 'scale-100 opacity-100' : 'scale-105 opacity-0'
+                        } group-hover:scale-105`}
+                        src={recipe.image_url || "/placeholder.svg"}
+                        onLoad={() => {
+                          setLoadedImages((prev) => new Set(prev).add(recipe.id))
+                        }}
                       />
-                    </button>
-                  </div>
-                )}
-                <CardHeader>
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <div className="flex-1">
-                      <CardTitle className="line-clamp-2">{recipe.name}</CardTitle>
-                      {recipe.category && <CardDescription className="mt-1">{recipe.category}</CardDescription>}
+                      {!imageLoaded && (
+                        <div className="absolute inset-0 bg-muted animate-pulse" />
+                      )}
+                      
+                      {/* Favorite Button */}
+                      <button
+                        onClick={() => handleToggleFavorite(recipe.id)}
+                        className="absolute top-4 right-4 p-2.5 bg-background/80 backdrop-blur-sm hover:bg-background border border-border rounded-full transition-all duration-300 z-10 hover:scale-110"
+                      >
+                        <Heart
+                          className={`w-4 h-4 transition-all duration-300 ${
+                            favorites.includes(recipe.id)
+                              ? 'fill-foreground text-foreground'
+                              : 'text-foreground/60'
+                          }`}
+                        />
+                      </button>
+
+                      {/* Difficulty Badge */}
+                      <div className="absolute top-4 left-4 z-10">
+                        <Badge
+                          variant="secondary"
+                          className="bg-background/80 backdrop-blur-sm border border-border text-foreground font-medium capitalize px-3 py-1"
+                        >
+                          {recipe.difficulty}
+                        </Badge>
+                      </div>
                     </div>
-                    <span className="text-xs px-2 py-1 rounded-full font-medium whitespace-nowrap bg-muted text-foreground">
-                      {recipe.difficulty}
-                    </span>
-                  </div>
-                </CardHeader>
-                <CardContent className="flex-1 flex flex-col">
-                  {recipe.description && (
-                    <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{recipe.description}</p>
                   )}
 
-                  <div className="flex gap-4 text-sm text-muted-foreground mb-4 mt-auto">
-                    {recipe.prep_time_minutes && (
-                      <div className="flex items-center gap-1">
-                        <Clock className="w-4 h-4" />
-                        {recipe.prep_time_minutes}m prep
+                  {/* Content Section */}
+                  <div className="flex flex-col flex-1 p-6">
+                    {/* Header */}
+                    <div className="mb-3">
+                      <div className="flex items-start justify-between gap-3 mb-2">
+                        <h3 className="text-lg font-semibold text-foreground leading-tight line-clamp-2 flex-1">
+                          {recipe.name}
+                        </h3>
                       </div>
-                    )}
-                    {recipe.servings && (
-                      <div className="flex items-center gap-1">
-                        <Users className="w-4 h-4" />
-                        {recipe.servings} servings
-                      </div>
-                    )}
-                  </div>
+                      {recipe.category && (
+                        <p className="text-sm text-muted-foreground">{recipe.category}</p>
+                      )}
+                    </div>
 
-                  <div className="flex gap-2 pt-4 border-t border-border">
-                    <Link href={`/recipes/${recipe.id}`} className="flex-1">
-                      <Button variant="outline" size="sm" className="w-full border-border bg-transparent">
-                        View
+                    {/* Description */}
+                    {recipe.description && (
+                      <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2 mb-4">
+                        {recipe.description}
+                      </p>
+                    )}
+
+                    {/* Meta Information */}
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground mb-4 pb-4 border-b border-border">
+                      {recipe.prep_time_minutes && (
+                        <div className="flex items-center gap-1.5">
+                          <Clock className="w-3.5 h-3.5" />
+                          <span>{recipe.prep_time_minutes}m prep</span>
+                        </div>
+                      )}
+                      {recipe.servings && (
+                        <div className="flex items-center gap-1.5">
+                          <ChefHat className="w-3.5 h-3.5" />
+                          <span>{recipe.servings} servings</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-2 mt-auto">
+                      <Link href={`/recipes/${recipe.id}`} className="flex-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full bg-background hover:bg-muted border-border"
+                        >
+                          View Recipe
+                        </Button>
+                      </Link>
+                      <Link href={`/recipes/${recipe.id}/edit`}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="bg-background hover:bg-muted border-border"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </Button>
+                      </Link>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="bg-background hover:bg-destructive/10 border-border text-destructive hover:text-destructive"
+                        onClick={() => {
+                          setDeleteId(recipe.id)
+                          setDeleteOpen(true)
+                        }}
+                        disabled={deleting === recipe.id}
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </Button>
-                    </Link>
-                    <Link href={`/recipes/${recipe.id}/edit`}>
-                      <Button variant="outline" size="sm" className="border-border bg-transparent">
-                        <Edit2 className="w-4 h-4" />
-                      </Button>
-                    </Link>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setDeleteId(recipe.id)
-                        setDeleteOpen(true)
-                      }}
-                      disabled={deleting === recipe.id}
-                      className="border-destructive text-destructive hover:bg-destructive/10"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
+                </div>
+              )
+            })}
           </div>
         )}
       </main>
