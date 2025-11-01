@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
-import { searchRecipes, deleteRecipe } from "@/lib/db/recipes"
+import { searchRecipes, deleteRecipe, getAllCategories } from "@/lib/db/recipes"
 import { getFavoriteRecipes, toggleFavorite } from "@/lib/db/favorites"
 import type { Recipe } from "@/lib/types/recipe"
 import { Button } from "@/components/ui/button"
@@ -34,16 +34,29 @@ export default function RecipesPage() {
     fetchInitialData()
   }, [])
 
+  // Auto-search when filters change (but not on initial load)
+  useEffect(() => {
+    if (!loading && (category || difficulty || showFavoritesOnly)) {
+      const timeoutId = setTimeout(() => {
+        handleSearch()
+      }, 300) // Debounce for 300ms
+      
+      return () => clearTimeout(timeoutId)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [category, difficulty, showFavoritesOnly])
+
   const fetchInitialData = async () => {
     try {
-      const [recipesData, favoritesData] = await Promise.all([searchRecipes(""), getFavoriteRecipes()])
+      const [recipesData, favoritesData, allCategories] = await Promise.all([
+        searchRecipes(""), 
+        getFavoriteRecipes(),
+        getAllCategories()
+      ])
 
       setRecipes(recipesData)
       setFavorites(favoritesData)
-      
-      // Extract unique categories
-      const uniqueCategories = Array.from(new Set(recipesData.map((r) => r.category).filter(Boolean))) as string[]
-      setCategories(uniqueCategories.sort())
+      setCategories(allCategories)
     } catch (error) {
       console.error("[v0] Error fetching data:", error)
       toast({
@@ -167,7 +180,7 @@ export default function RecipesPage() {
               <select
                 value={difficulty}
                 onChange={(e) => setDifficulty(e.target.value)}
-                className="px-4 py-2 border border-border rounded-lg bg-background"
+                className="px-4 py-2 border border-border rounded-lg bg-background min-w-[140px]"
               >
                 <option value="">All Levels</option>
                 <option value="easy">Easy</option>
@@ -177,7 +190,7 @@ export default function RecipesPage() {
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="px-4 py-2 border border-border rounded-lg bg-background"
+                className="px-4 py-2 border border-border rounded-lg bg-background min-w-[160px]"
               >
                 <option value="">All Categories</option>
                 {categories.map((cat) => (
@@ -189,11 +202,42 @@ export default function RecipesPage() {
               <Button
                 onClick={handleSearch}
                 disabled={searching}
-                className="bg-primary text-primary-foreground hover:bg-primary/90"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 whitespace-nowrap"
               >
                 {searching ? "Searching..." : "Search"}
               </Button>
             </div>
+            
+            {/* Category Quick Filters */}
+            {categories.length > 0 && (
+              <div className="flex flex-wrap gap-2 items-center">
+                <span className="text-sm text-muted-foreground">Quick filters:</span>
+                <Button
+                  variant={category === "" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setCategory("")}
+                  className="h-8"
+                >
+                  All
+                </Button>
+                {categories.slice(0, 6).map((cat) => (
+                  <Button
+                    key={cat}
+                    variant={category === cat ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCategory(cat)}
+                    className="h-8"
+                  >
+                    {cat}
+                  </Button>
+                ))}
+                {categories.length > 6 && (
+                  <span className="text-sm text-muted-foreground">
+                    +{categories.length - 6} more
+                  </span>
+                )}
+              </div>
+            )}
             <div className="flex gap-2 flex-wrap">
               <Button
                 variant={showFavoritesOnly ? "default" : "outline"}

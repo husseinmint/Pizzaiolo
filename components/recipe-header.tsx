@@ -28,7 +28,7 @@ export function RecipeHeader({ showNewButton = true }: RecipeHeaderProps) {
       <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <ChefHat className="w-6 h-6" />
-          <span className="font-bold">Pizzailo</span>
+          <span className="font-bold">Pizzailo Mate</span>
         </Link>
         <nav className="hidden md:flex items-center gap-2">
           <Link href="/recipes">

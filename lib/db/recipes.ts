@@ -187,6 +187,26 @@ export async function duplicateRecipe(id: string): Promise<Recipe> {
   return newRecipe
 }
 
+export async function getAllCategories(): Promise<string[]> {
+  const supabase = createClient()
+  
+  const { data, error } = await supabase
+    .from("recipes")
+    .select("category")
+    .not("category", "is", null)
+
+  if (error) {
+    console.error("[v0] Error fetching categories:", error)
+    return []
+  }
+
+  const uniqueCategories = Array.from(
+    new Set(data.map((r) => r.category).filter(Boolean))
+  ) as string[]
+
+  return uniqueCategories.sort()
+}
+
 export async function searchRecipes(
   query: string,
   difficulty?: string,

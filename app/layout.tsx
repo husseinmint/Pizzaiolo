@@ -13,7 +13,7 @@ const ibmPlexSansArabic = IBM_Plex_Sans_Arabic({
 });
 
 export const metadata: Metadata = {
-  title: 'Pizzailo - Recipe Manager',
+  title: 'Pizzailo Mate - Recipe Manager',
   description: 'Personal recipe manager and shopping lists',
   generator: 'v0.app',
 }
