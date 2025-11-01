@@ -8,10 +8,15 @@ import { getRecipeById, updateRecipe } from "@/lib/db/recipes"
 import { validateRecipeForm } from "@/lib/validation"
 import type { Recipe, Ingredient } from "@/lib/types/recipe"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Separator } from "@/components/ui/separator"
 import { RecipeHeader } from "@/components/recipe-header"
 import { FormError } from "@/components/form-error"
-import { ArrowLeft, Plus, X } from "lucide-react"
+import { ArrowLeft, Plus, Trash2, GripVertical } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useUser } from "@/lib/auth/hooks"
 
@@ -35,7 +40,7 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
     instructions: "",
     image_url: "",
   })
-  const [ingredients, setIngredients] = useState<Array<{ id?: string; name: string; amount: string; unit: string }>>([])
+  const [ingredients, setIngredients] = useState<Array<{ id: string; name: string; amount: string; unit: string }>>([])
 
   useEffect(() => {
     if (!userLoading && !user) {
@@ -68,14 +73,14 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
         if (data.ingredients && data.ingredients.length > 0) {
           setIngredients(
             data.ingredients.map((ing) => ({
-              id: ing.id,
+              id: ing.id || Date.now().toString(),
               name: ing.name,
               amount: ing.amount?.toString() || "",
               unit: ing.unit || "",
             })),
           )
         } else {
-          setIngredients([{ name: "", amount: "", unit: "" }])
+          setIngredients([{ id: Date.now().toString(), name: "", amount: "", unit: "" }])
         }
       }
     } catch (error) {
@@ -90,7 +95,7 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
     }
   }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
     if (formErrors[name]) {
@@ -102,18 +107,23 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
     }
   }
 
-  const handleIngredientChange = (index: number, field: string, value: string) => {
-    const newIngredients = [...ingredients]
-    newIngredients[index] = { ...newIngredients[index], [field]: value }
-    setIngredients(newIngredients)
+  const updateIngredient = (id: string, field: keyof { name: string; amount: string; unit: string }, value: string) => {
+    setIngredients(
+      ingredients.map((ing) =>
+        ing.id === id ? { ...ing, [field]: value } : ing
+      )
+    )
   }
 
   const addIngredient = () => {
-    setIngredients([...ingredients, { name: "", amount: "", unit: "" }])
+    setIngredients([
+      ...ingredients,
+      { id: Date.now().toString(), name: "", amount: "", unit: "" },
+    ])
   }
 
-  const removeIngredient = (index: number) => {
-    setIngredients(ingredients.filter((_, i) => i !== index))
+  const removeIngredient = (id: string) => {
+    setIngredients(ingredients.filter((ing) => ing.id !== id))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -232,200 +242,285 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
     <div className="min-h-screen bg-background">
       <RecipeHeader showNewButton={false} />
 
-      <main className="max-w-4xl mx-auto px-4 py-8">
-        <Link
-          href={`/recipes/${id}`}
-          className="flex items-center gap-1 text-muted-foreground hover:text-foreground mb-6"
+      <main className="max-w-5xl mx-auto px-4 py-8">
+        {/* Back Button */}
+        <Button
+          variant="ghost"
+          className="mb-6 -ml-2 text-muted-foreground hover:text-foreground"
+          asChild
         >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Recipe
-        </Link>
+          <Link href={`/recipes/${id}`}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Recipe
+          </Link>
+        </Button>
 
-        <Card className="border-border">
-          <CardHeader>
-            <CardTitle className="text-2xl">Edit Recipe</CardTitle>
+        <Card className="border-border shadow-lg">
+          <CardHeader className="border-b border-border pb-6">
+            <CardTitle className="text-3xl font-bold">Edit Recipe</CardTitle>
+            <p className="text-muted-foreground mt-2">
+              Update your recipe details, ingredients, and instructions
+            </p>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-4">
-                <h3 className="font-semibold">Recipe Details</h3>
 
-                <div>
-                  <label className="block text-sm font-medium mb-2">Recipe Name *</label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full px-4 py-2 border border-border rounded-lg bg-background"
-                  />
-                  <FormError message={formErrors.name} />
+          <CardContent className="pt-6">
+            <form onSubmit={handleSubmit} className="space-y-8">
+              {/* Recipe Details Section */}
+              <div className="space-y-6">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-1 bg-primary rounded-full" />
+                  <h3 className="text-xl font-semibold">Recipe Details</h3>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-2">Description</label>
-                  <textarea
-                    name="description"
-                    value={formData.description}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-2 border border-border rounded-lg bg-background resize-none"
-                    rows={3}
-                  />
-                </div>
+                <div className="grid gap-6 pl-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name" className="text-sm font-medium">
+                      Recipe Name <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="name"
+                      name="name"
+                      required
+                      value={formData.name}
+                      onChange={handleInputChange}
+                      className="text-base"
+                      placeholder="Enter recipe name"
+                    />
+                    <FormError message={formErrors.name} />
+                  </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Category</label>
-                    <input
-                      type="text"
-                      name="category"
-                      value={formData.category}
+                  <div className="space-y-2">
+                    <Label htmlFor="description" className="text-sm font-medium">
+                      Description
+                    </Label>
+                    <Textarea
+                      id="description"
+                      name="description"
+                      value={formData.description}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-border rounded-lg bg-background"
+                      rows={3}
+                      className="resize-none"
+                      placeholder="Describe your recipe..."
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Difficulty *</label>
-                    <select
-                      name="difficulty"
-                      value={formData.difficulty}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-border rounded-lg bg-background"
-                    >
-                      <option value="easy">Easy</option>
-                      <option value="medium">Medium</option>
-                      <option value="hard">Hard</option>
-                    </select>
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Prep Time (min)</label>
-                    <input
-                      type="number"
-                      name="prep_time_minutes"
-                      value={formData.prep_time_minutes}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-border rounded-lg bg-background"
-                    />
-                    <FormError message={formErrors.prep_time_minutes} />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Cook Time (min)</label>
-                    <input
-                      type="number"
-                      name="cook_time_minutes"
-                      value={formData.cook_time_minutes}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-border rounded-lg bg-background"
-                    />
-                    <FormError message={formErrors.cook_time_minutes} />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Servings</label>
-                    <input
-                      type="number"
-                      name="servings"
-                      value={formData.servings}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-border rounded-lg bg-background"
-                    />
-                    <FormError message={formErrors.servings} />
-                  </div>
-                </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="category" className="text-sm font-medium">
+                        Category
+                      </Label>
+                      <Input
+                        id="category"
+                        name="category"
+                        value={formData.category}
+                        onChange={handleInputChange}
+                        placeholder="e.g., Pizza, Pasta, Dessert"
+                      />
+                    </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-2">Image URL</label>
-                  <input
-                    type="url"
-                    name="image_url"
-                    value={formData.image_url}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-2 border border-border rounded-lg bg-background"
-                  />
+                    <div className="space-y-2">
+                      <Label htmlFor="difficulty" className="text-sm font-medium">
+                        Difficulty <span className="text-destructive">*</span>
+                      </Label>
+                      <Select
+                        value={formData.difficulty}
+                        onValueChange={(value: "easy" | "medium" | "hard") =>
+                          setFormData({ ...formData, difficulty: value })
+                        }
+                      >
+                        <SelectTrigger id="difficulty">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="easy">Easy</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="hard">Hard</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="prepTime" className="text-sm font-medium">
+                        Prep Time (min)
+                      </Label>
+                      <Input
+                        id="prepTime"
+                        name="prep_time_minutes"
+                        type="number"
+                        value={formData.prep_time_minutes}
+                        onChange={handleInputChange}
+                        placeholder="0"
+                      />
+                      <FormError message={formErrors.prep_time_minutes} />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="cookTime" className="text-sm font-medium">
+                        Cook Time (min)
+                      </Label>
+                      <Input
+                        id="cookTime"
+                        name="cook_time_minutes"
+                        type="number"
+                        value={formData.cook_time_minutes}
+                        onChange={handleInputChange}
+                        placeholder="0"
+                      />
+                      <FormError message={formErrors.cook_time_minutes} />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="servings" className="text-sm font-medium">
+                        Servings
+                      </Label>
+                      <Input
+                        id="servings"
+                        name="servings"
+                        type="number"
+                        value={formData.servings}
+                        onChange={handleInputChange}
+                        placeholder="0"
+                      />
+                      <FormError message={formErrors.servings} />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="imageUrl" className="text-sm font-medium">
+                      Image URL
+                    </Label>
+                    <Input
+                      id="imageUrl"
+                      name="image_url"
+                      type="url"
+                      value={formData.image_url}
+                      onChange={handleInputChange}
+                      placeholder="https://example.com/image.jpg"
+                    />
+                    {formData.image_url && (
+                      <div className="mt-3 rounded-lg overflow-hidden border border-border">
+                        <img
+                          src={formData.image_url}
+                          alt="Recipe preview"
+                          className="w-full h-48 object-cover"
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              <div className="space-y-4">
+              <Separator />
+
+              {/* Ingredients Section */}
+              <div className="space-y-6">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-semibold">Ingredients</h3>
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-1 bg-primary rounded-full" />
+                    <h3 className="text-xl font-semibold">Ingredients</h3>
+                  </div>
                   <Button
                     type="button"
-                    onClick={addIngredient}
                     variant="outline"
                     size="sm"
-                    className="gap-1 border-border bg-transparent"
+                    onClick={addIngredient}
+                    className="gap-2"
                   >
                     <Plus className="w-4 h-4" />
-                    Add
+                    Add Ingredient
                   </Button>
                 </div>
 
-                <div className="space-y-3">
-                  {ingredients.map((ingredient, index) => (
-                    <div key={index} className="flex gap-2">
-                      <input
-                        type="text"
-                        value={ingredient.name}
-                        onChange={(e) => handleIngredientChange(index, "name", e.target.value)}
-                        className="flex-1 px-4 py-2 border border-border rounded-lg bg-background"
-                        placeholder="Ingredient name"
-                      />
-                      <input
-                        type="number"
-                        step="0.1"
-                        value={ingredient.amount}
-                        onChange={(e) => handleIngredientChange(index, "amount", e.target.value)}
-                        className="w-24 px-4 py-2 border border-border rounded-lg bg-background"
-                        placeholder="Amount"
-                      />
-                      <input
-                        type="text"
-                        value={ingredient.unit}
-                        onChange={(e) => handleIngredientChange(index, "unit", e.target.value)}
-                        className="w-20 px-4 py-2 border border-border rounded-lg bg-background"
-                        placeholder="Unit"
-                      />
-                      {ingredients.length > 1 && (
-                        <Button
-                          type="button"
-                          onClick={() => removeIngredient(index)}
-                          variant="outline"
-                          size="sm"
-                          className="border-destructive text-destructive hover:bg-destructive/10"
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      )}
+                <div className="space-y-3 pl-4">
+                  {ingredients.map((ingredient) => (
+                    <div
+                      key={ingredient.id}
+                      className="flex gap-2 items-start group hover:bg-accent/50 p-2 rounded-lg transition-colors"
+                    >
+                      <div className="flex items-center pt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <GripVertical className="w-4 h-4 text-muted-foreground" />
+                      </div>
+                      <div className="flex-1 grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-2">
+                        <Input
+                          placeholder="Ingredient name"
+                          value={ingredient.name}
+                          onChange={(e) =>
+                            updateIngredient(ingredient.id, "name", e.target.value)
+                          }
+                        />
+                        <Input
+                          type="number"
+                          step="0.1"
+                          placeholder="Amount"
+                          value={ingredient.amount}
+                          onChange={(e) =>
+                            updateIngredient(ingredient.id, "amount", e.target.value)
+                          }
+                          className="w-full md:w-28"
+                        />
+                        <Input
+                          placeholder="Unit"
+                          value={ingredient.unit}
+                          onChange={(e) =>
+                            updateIngredient(ingredient.id, "unit", e.target.value)
+                          }
+                          className="w-full md:w-24"
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeIngredient(ingredient.id)}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10 mt-0.5"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <h3 className="font-semibold">Instructions</h3>
-                <textarea
-                  name="instructions"
-                  value={formData.instructions}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-border rounded-lg bg-background resize-none"
-                  rows={6}
-                />
+              <Separator />
+
+              {/* Instructions Section */}
+              <div className="space-y-6">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-1 bg-primary rounded-full" />
+                  <h3 className="text-xl font-semibold">Instructions</h3>
+                </div>
+
+                <div className="pl-4 space-y-2">
+                  <Label htmlFor="instructions" className="text-sm font-medium">
+                    Step-by-step instructions
+                  </Label>
+                  <Textarea
+                    id="instructions"
+                    name="instructions"
+                    value={formData.instructions}
+                    onChange={handleInputChange}
+                    rows={8}
+                    className="resize-none font-mono text-sm"
+                    placeholder="1. First step...&#10;2. Second step...&#10;3. Third step..."
+                  />
+                </div>
               </div>
 
-              <div className="flex gap-4 pt-6 border-t border-border">
-                <Link href={`/recipes/${params.id}`} className="flex-1">
-                  <Button variant="outline" className="w-full border-border bg-transparent">
-                    Cancel
-                  </Button>
-                </Link>
+              <Separator />
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
                 <Button
-                  type="submit"
-                  disabled={saving}
-                  className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
+                  type="button"
+                  variant="outline"
+                  className="flex-1 sm:flex-none sm:w-32"
+                  asChild
                 >
+                  <Link href={`/recipes/${id}`}>Cancel</Link>
+                </Button>
+                <Button type="submit" disabled={saving} className="flex-1 sm:flex-auto">
                   {saving ? "Saving..." : "Save Changes"}
                 </Button>
               </div>
